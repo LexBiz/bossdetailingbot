@@ -1,0 +1,23 @@
+{
+  "name": "boss-detailing-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot BOSS DETALING for managing detailing bookings, prices, FAQ and reminders (RU/CZ).",
+  "type": "module",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js",
+    "dev": "node api/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.1",
+    "telegraf": "^4.16.3"
+  }
+}
+
+
