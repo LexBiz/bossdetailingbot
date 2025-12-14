@@ -137,6 +137,12 @@ app.post('/api/webhook', (req, res) => {
 });
 
 async function start() {
+  // Важно: поднимаем HTTP-сервер независимо от запуска polling.
+  // В некоторых окружениях await bot.launch() может не возвращать управление сразу.
+  app.listen(PORT, () => {
+    console.log(`HTTP server listening on port ${PORT}`);
+  });
+
   if (USE_WEBHOOK) {
     if (!WEBHOOK_URL) {
       console.error(
@@ -148,13 +154,11 @@ async function start() {
     }
   } else {
     await bot.telegram.deleteWebhook().catch(() => {});
-    await bot.launch();
-    console.log('[BOT] Started in polling mode');
+    bot
+      .launch()
+      .then(() => console.log('[BOT] Started in polling mode'))
+      .catch((err) => console.error('[BOT] Failed to launch polling', err));
   }
-
-  app.listen(PORT, () => {
-    console.log(`HTTP server listening on port ${PORT}`);
-  });
 
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
