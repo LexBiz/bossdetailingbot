@@ -34,15 +34,52 @@ export function applyTemplate(str, vars) {
   );
 }
 
-export function formatDate(date) {
+const DEFAULT_TZ = process.env.CRON_TZ || 'Europe/Prague';
+
+function getTzOffset(date, timeZone = DEFAULT_TZ) {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+  const parts = dtf.formatToParts(date).reduce((acc, p) => {
+    if (p.type !== 'literal') acc[p.type] = p.value;
+    return acc;
+  }, {});
+  const asUTC = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  );
+  return asUTC - date.getTime();
+}
+
+function makeDateInTz({ year, month, day, hour, minute }, timeZone = DEFAULT_TZ) {
+  const utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+  const offset = getTzOffset(new Date(utcGuess), timeZone);
+  return new Date(utcGuess - offset);
+}
+
+export function formatDate(date, timeZone = DEFAULT_TZ) {
   if (!date) return '';
   const d = new Date(date);
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mi = String(d.getMinutes()).padStart(2, '0');
-  return `${dd}.${mm}.${yyyy} ${hh}:${mi}`;
+  const formatter = new Intl.DateTimeFormat('ru-RU', {
+    timeZone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  return formatter.format(d).replace(',', '');
 }
 
 export function generateCalendarDays(numDays = 7) {
@@ -67,14 +104,14 @@ export function generateCalendarDays(numDays = 7) {
 }
 
 export function defaultVisitDateFromDayString(dayStr) {
-  // dayStr: YYYY-MM-DD, set default time 10:00 local
+  // dayStr: YYYY-MM-DD, set default time 10:00 in Prague timezone
   const [yyyy, mm, dd] = dayStr.split('-').map(Number);
-  const date = new Date();
-  date.setFullYear(yyyy);
-  date.setMonth(mm - 1);
-  date.setDate(dd);
-  date.setHours(10, 0, 0, 0);
-  return date;
+  return makeDateInTz({ year: yyyy, month: mm, day: dd, hour: 10, minute: 0 });
+}
+
+export function buildVisitDateWithTime(dayStr, hour, minute) {
+  const [yyyy, mm, dd] = dayStr.split('-').map(Number);
+  return makeDateInTz({ year: yyyy, month: mm, day: dd, hour, minute });
 }
 
 export async function createBookingWithReminders({

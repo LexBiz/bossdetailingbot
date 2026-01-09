@@ -5,6 +5,7 @@ import {
   formatDate,
   generateCalendarDays,
   defaultVisitDateFromDayString,
+  buildVisitDateWithTime,
   createBookingWithReminders,
   ensureUser
 } from '../helpers/utils.js';
@@ -72,6 +73,7 @@ export function registerBookingFlow(bot) {
     await ctx.answerCbQuery();
     if (!ctx.session.booking) ctx.session.booking = {};
     const dayStr = ctx.match[1];
+    ctx.session.booking.dayStr = dayStr;
     ctx.session.booking.visitDate = defaultVisitDateFromDayString(dayStr);
     ctx.session.booking.step = 'time';
     await askTime(ctx);
@@ -147,8 +149,15 @@ export function registerBookingFlow(bot) {
             await askDate(ctx);
             return;
           }
-          d.setHours(hh, mm, 0, 0);
-          ctx.session.booking.visitDate = d;
+          const dayStr = ctx.session.booking.dayStr;
+          const zonedDate = dayStr
+            ? buildVisitDateWithTime(dayStr, hh, mm)
+            : buildVisitDateWithTime(
+                `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+                hh,
+                mm
+              );
+          ctx.session.booking.visitDate = zonedDate;
           ctx.session.booking.step = 'name';
           await askName(ctx);
           return;

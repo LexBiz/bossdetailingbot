@@ -207,6 +207,78 @@ export function createBot() {
     await sendMyBookings(ctx, lang);
   });
 
+  bot.action(/^my_cancel:(\d+)$/, async (ctx) => {
+    await ctx.answerCbQuery();
+    const bookingId = Number(ctx.match[1]);
+    const lang = ctx.state.userLang || LANG.RU;
+    const m = getMessages(lang);
+
+    const res = await query(
+      `SELECT b.*, u.telegram_id, u.name
+       FROM bookings b
+       JOIN users u ON u.id = b.user_id
+       WHERE b.id = $1 AND u.telegram_id = $2
+       LIMIT 1`,
+      [bookingId, ctx.from.id]
+    );
+
+    if (!res.rows.length) {
+      await ctx.reply(m.myBookings.notFound);
+      return;
+    }
+
+    const b = res.rows[0];
+    const now = new Date();
+    const visit = new Date(b.visit_date);
+    const diffMs = visit.getTime() - now.getTime();
+    if (diffMs < 2 * 60 * 60 * 1000) {
+      await ctx.reply(m.myBookings.cancelTooLate);
+      return;
+    }
+
+    await query(
+      'UPDATE bookings SET status = $1, updated_at = NOW() WHERE id = $2',
+      ['canceled', bookingId]
+    );
+    await query(
+      'UPDATE reminders SET status = $1 WHERE booking_id = $2 AND status = $3',
+      ['canceled', bookingId, 'pending']
+    );
+
+    await ctx.reply(m.myBookings.canceled.replace('{{id}}', bookingId));
+
+    const targetChatId = process.env.BOOKINGS_CHAT_ID;
+    if (targetChatId) {
+      try {
+        const ma = getMessages(LANG.RU);
+        const statusText = ma.statuses['canceled'] || 'canceled';
+        const adminText = ma.booking.adminBookingTemplate
+          .replace('{{id}}', String(bookingId))
+          .replace('{{name}}', b.name || '—')
+          .replace('{{phone}}', b.phone || '-')
+          .replace(
+            '{{phoneStatus}}',
+            b.phone_verified ? ma.booking.phoneStatusVerified : ma.booking.phoneStatusUnverified
+          )
+          .replace('{{carClass}}', b.car_class)
+          .replace('{{category}}', b.service_category)
+          .replace('{{service}}', b.service_name)
+          .replace('{{date}}', formatDate(b.visit_date))
+          .replace('{{created}}', formatDate(b.created_at))
+          .replace('{{comment}}', b.comment || '-')
+          .replace('{{status}}', statusText);
+
+        await ctx.telegram.sendMessage(
+          targetChatId,
+          `*${ma.booking.adminCanceledByUserTitle}*\n\n${adminText}`,
+          { parse_mode: 'Markdown' }
+        );
+      } catch (err) {
+        console.error('[BOOKINGS_NOTIFY_CANCEL] Failed to send cancel notification', err);
+      }
+    }
+  });
+
   bot.action('menu_settings', async (ctx) => {
     await ctx.answerCbQuery();
     const lang = ctx.state.userLang || LANG.RU;
@@ -265,8 +337,16 @@ async function sendMyBookings(ctx, lang) {
       )
       .replace('{{carClass}}', b.car_class)
       .replace('{{status}}', status);
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: m.myBookings.btnCancel, callback_data: `my_cancel:${b.id}` }
+        ]
+      ]
+    };
     await ctx.reply(text, {
-      parse_mode: 'Markdown'
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
     });
   }
 }

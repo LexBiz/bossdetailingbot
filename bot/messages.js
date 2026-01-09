@@ -79,6 +79,7 @@ export const messages = {
         cancel: '❌ Отменить',
         reschedule: '🔁 Перенести'
       },
+      adminCanceledByUserTitle: '❌ Клиент отменил запись',
       errorNoActiveBooking:
         'Не удалось найти активную заявку. Попробуйте начать запись заново.',
       adminBookingTemplate:
@@ -99,6 +100,9 @@ export const messages = {
       btnCancel: '❌ Отменить',
       btnReschedule: '🔁 Перенести',
       cancelConfirm: 'Вы уверены, что хотите отменить запись #{{id}}?',
+      cancelTooLate:
+        '⏳ Отменить можно не позднее чем за 2 часа до визита. Если нужно — напишите администратору.',
+      notFound: 'Запись не найдена или уже отменена.',
       canceled: '✅ Запись #{{id}} отменена.',
       rescheduleStart:
         'Выберите новую дату для записи #{{id}} (календарь ниже):'
@@ -249,6 +253,7 @@ export const messages = {
         reject: '❌ Zrušit',
         reschedule: '🔁 Přesunout'
       },
+      adminCanceledByUserTitle: '❌ Klient zrušil rezervaci',
       adminAccepted: '✅ Rezervace #{{id}} byla potvrzena administrátorem.',
       adminRejected: '❌ Rezervace #{{id}} byla zrušena administrátorem.',
       adminRescheduleRequested:
@@ -269,6 +274,9 @@ export const messages = {
       btnCancel: '❌ Zrušit',
       btnReschedule: '🔁 Přesunout',
       cancelConfirm: 'Opravdu chcete zrušit rezervaci #{{id}}?',
+      cancelTooLate:
+        '⏳ Zrušit lze nejpozději 2 hodiny před termínem. V případě potřeby napište administrátorovi.',
+      notFound: 'Rezervace nenalezena nebo již zrušena.',
       canceled: '✅ Rezervace #{{id}} byla zrušena.',
       rescheduleStart:
         'Vyberte nové datum pro rezervaci #{{id}} (kalendář níže):'
